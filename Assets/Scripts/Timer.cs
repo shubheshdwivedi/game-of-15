@@ -7,10 +7,12 @@ public class Timer : MonoBehaviour
 {
     private bool m_timerState = true;
 
-    [SerializeField] private TextMeshProUGUI m_time;
+    private TextMeshProUGUI m_time;
     [SerializeField] private float m_timeCounter = 0;
 
-  
+    private void Start() {
+        m_time = GetComponent<TextMeshProUGUI>();
+    }
 
     void Update() {
         if (m_timerState)
