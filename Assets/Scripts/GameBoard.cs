@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
@@ -8,26 +9,24 @@ public class GameBoard : MonoBehaviour {
     [SerializeField] private Button m_tileButton;
     [SerializeField] private GameObject[] m_slots;
 
-    private List<Button> m_tiles = new List<Button>();
+    private List<Button> m_buttonArray = new List<Button>();
     private int m_size;
     private int m_numOfBlocks;
+
     private int[] m_gameArray;
-    private int m_clickedButtonIndex;
+    private int m_clickedButtonSlotIndex;
     private int m_blankPosition;
 
     private bool m_isButtonClicked = false;
-
-    private float m_startTime;
-    private float m_distanceToBeCovered;
-
-    // Start is called before the first frame update
+    private bool m_winCheck = false;
+    private int[] m_winArray = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0 };
+ 
     void Start() {
         m_size = 4;
         m_numOfBlocks = (m_size * m_size) - 1;
         m_gameArray = new int[m_size * m_size];
     }
 
-    // Update is called once per frame
     void Update() {
         Move();
     }
@@ -36,8 +35,10 @@ public class GameBoard : MonoBehaviour {
 
         if (m_isButtonClicked) {
 
-            int btnIdx = (m_clickedButtonIndex > m_blankPosition) ? m_clickedButtonIndex - 1 : m_clickedButtonIndex;
-            Button clickedButton = m_tiles[btnIdx];
+            int buttonIndex = (m_clickedButtonSlotIndex > m_blankPosition) ? m_clickedButtonSlotIndex - 1 :
+                m_clickedButtonSlotIndex;
+
+            Button clickedButton = m_buttonArray[m_gameArray[m_clickedButtonSlotIndex]-1];
             GameObject slot = m_slots[m_blankPosition];
             
             Vector2 startPosition = clickedButton.transform.position;
@@ -45,13 +46,28 @@ public class GameBoard : MonoBehaviour {
             
             clickedButton.transform.position = Vector2.Lerp(startPosition, endPosition, 2.0f);
 
-            m_blankPosition = m_clickedButtonIndex;
 
-            print("Refactored index : " + btnIdx);
-            print("Blank now : " + m_blankPosition);
+            m_gameArray[m_blankPosition] = m_gameArray[m_clickedButtonSlotIndex];
+            m_gameArray[m_clickedButtonSlotIndex] = 0;
+
+            m_blankPosition = m_clickedButtonSlotIndex;
             m_isButtonClicked = false;
 
+            checkWin();
         }
+    }
+
+
+    private void checkWin() {
+        bool flag = true;
+        for(int i=0; i<m_gameArray.Length; i++) {
+            if(m_gameArray[i] != m_winArray[i]) {
+                flag = false;
+                break;
+            }
+        }
+        if (flag)
+            UnityEngine.SceneManagement.SceneManager.LoadScene(1);
     }
 
 
@@ -59,7 +75,7 @@ public class GameBoard : MonoBehaviour {
     public void setUpGame() {
 
         newGame();
-        m_gameArray = new int[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0 };
+        
         for (int i = 0; i < m_gameArray.Length; i++) {
         
             Vector2 position = m_slots[i].transform.position;
@@ -69,9 +85,9 @@ public class GameBoard : MonoBehaviour {
                 Button gameButton = Instantiate(m_tileButton, position, Quaternion.identity, this.transform);
                 gameButton.GetComponentInChildren<Text>().text = m_gameArray[i].ToString();
                 
-                m_tiles.Add(gameButton);
-                int buttonIndex = i;
-                gameButton.onClick.AddListener(() => onButtonClicked(buttonIndex));
+                m_buttonArray.Add(gameButton);
+                int buttonValue = Int16.Parse(gameButton.GetComponentInChildren<Text>().text);
+                gameButton.onClick.AddListener(() => onButtonClicked(buttonValue));
             }
             else {
             
@@ -82,9 +98,9 @@ public class GameBoard : MonoBehaviour {
 
     private void onButtonClicked(int buttonIndex) {
 
-        m_clickedButtonIndex = buttonIndex;
+        m_clickedButtonSlotIndex = Array.IndexOf(m_gameArray, buttonIndex);
 
-        if (isClickable(buttonIndex)) 
+        if (isClickable(m_clickedButtonSlotIndex)) 
             m_isButtonClicked = true;
 
     }
@@ -110,6 +126,10 @@ public class GameBoard : MonoBehaviour {
     }
 
 
+
+
+    // Array generation
+
     private void newGame() {
         do {
             reset();
@@ -130,7 +150,7 @@ public class GameBoard : MonoBehaviour {
         int n = m_numOfBlocks;
 
         while (n > 1) {
-            int r = Random.Range(0, 15);
+            int r = UnityEngine.Random.Range(0, 15);
             int temp = m_gameArray[r];
             m_gameArray[r] = m_gameArray[n];
             m_gameArray[n] = temp;
