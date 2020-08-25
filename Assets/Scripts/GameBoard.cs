@@ -8,6 +8,7 @@ using UnityEngine.UI;
 public class GameBoard : MonoBehaviour {
     [SerializeField] private Button m_tileButton;
     [SerializeField] private GameObject[] m_slots;
+    [SerializeField] private TMPro.TextMeshProUGUI m_moveCount;
 
     private List<Button> m_buttonArray = new List<Button>();
     private int m_size;
@@ -18,8 +19,8 @@ public class GameBoard : MonoBehaviour {
     private int m_blankPosition;
 
     private bool m_isButtonClicked = false;
-    private bool m_winCheck = false;
     private int[] m_winArray = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0 };
+    private int m_moves = 0;
  
     void Start() {
         m_size = 4;
@@ -35,10 +36,12 @@ public class GameBoard : MonoBehaviour {
 
         if (m_isButtonClicked) {
 
-            int buttonIndex = (m_clickedButtonSlotIndex > m_blankPosition) ? m_clickedButtonSlotIndex - 1 :
+            int buttonIndex = Array.IndexOf(m_gameArray, m_gameArray[m_clickedButtonSlotIndex]);
+            buttonIndex = (m_clickedButtonSlotIndex > m_blankPosition) ? m_clickedButtonSlotIndex - 1 :
                 m_clickedButtonSlotIndex;
 
-            Button clickedButton = m_buttonArray[m_gameArray[m_clickedButtonSlotIndex]-1];
+            Button clickedButton = getButton(m_gameArray[m_clickedButtonSlotIndex].ToString());
+            string val = clickedButton.GetComponentInChildren<Text>().text;
             GameObject slot = m_slots[m_blankPosition];
             
             Vector2 startPosition = clickedButton.transform.position;
@@ -57,6 +60,13 @@ public class GameBoard : MonoBehaviour {
         }
     }
 
+    private Button getButton(string val) {
+        foreach(Button btn in m_buttonArray) {
+            if (btn.GetComponentInChildren<Text>().text == val)
+                return btn;
+        }
+        return null;
+    }
 
     private void checkWin() {
         bool flag = true;
@@ -75,7 +85,7 @@ public class GameBoard : MonoBehaviour {
     public void setUpGame() {
 
         newGame();
-        
+
         for (int i = 0; i < m_gameArray.Length; i++) {
         
             Vector2 position = m_slots[i].transform.position;
@@ -100,8 +110,12 @@ public class GameBoard : MonoBehaviour {
 
         m_clickedButtonSlotIndex = Array.IndexOf(m_gameArray, buttonIndex);
 
-        if (isClickable(m_clickedButtonSlotIndex)) 
+        if (isClickable(m_clickedButtonSlotIndex)) {
             m_isButtonClicked = true;
+
+            m_moves++;
+            m_moveCount.text = m_moves.ToString();
+        }
 
     }
 
@@ -111,10 +125,6 @@ public class GameBoard : MonoBehaviour {
         int bottom = (buttonIndex + m_size > m_numOfBlocks) ? -1 : buttonIndex + m_size;
         int left = (buttonIndex % m_size == 0) ? -1 : buttonIndex - 1;
         int right = (buttonIndex % m_size == (m_size - 1)) ? -1 : buttonIndex + 1;
-
-        print("Blank : "+ m_blankPosition);
-        print("Indexes : " + (top + " " + bottom + " " + left + " " + right));
-        print("Current button : " + buttonIndex);
 
         if(top == m_blankPosition 
             || bottom == m_blankPosition
@@ -135,15 +145,11 @@ public class GameBoard : MonoBehaviour {
             reset();
             shuffle();
         } while (!isSolvable());
-
-        string result = string.Join(",", m_gameArray);
-        print(result);
     }
 
     private void reset() {
         for (int i = 0; i < m_gameArray.Length; i++)
             m_gameArray[i] = (i + 1) % m_gameArray.Length;
-        m_blankPosition = m_gameArray.Length - 1;
     }
 
     private void shuffle() {
@@ -156,6 +162,7 @@ public class GameBoard : MonoBehaviour {
             m_gameArray[n] = temp;
             n--;
         }
+        m_blankPosition = Array.IndexOf(m_gameArray, 0);
     }
 
     private bool isSolvable() {
@@ -165,7 +172,12 @@ public class GameBoard : MonoBehaviour {
             for (int j = 0; j < i; j++)
                 if (m_gameArray[j] > m_gameArray[i])
                     countNoOfInversions++;
+        if (m_size % 2 != 0)
+            return (countNoOfInversions % 2 != 0);
 
-        return countNoOfInversions % 2 == 0;
+        float blankRow = m_blankPosition / m_size;
+
+        return ((countNoOfInversions % 2 == 0) && ((m_size - Math.Floor(blankRow)) % 2 != 0)) ||
+            ((countNoOfInversions % 2 != 0) && ((m_size - Math.Floor(blankRow)) % 2 == 0));
     }
 }
